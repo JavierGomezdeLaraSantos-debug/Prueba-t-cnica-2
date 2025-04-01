@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+    <script>
+
+        let dni
+        let fecha;
+        let form;
+        
+        //No he usado .env, para mayor sencillez del examinador/a de la prueba.
+        //así que lo he simulado con esta variable
+        
+        let linkApi = 'http://localhost/pruebatecnica2/php/querys.php';
+
+        function handler() {
+
+            dni = document.getElementById('dni');
+            dni.addEventListener('change', searchAppoinment)
+
+            fecha = document.getElementById('date');
+            fecha.addEventListener('change', validateDate)
+
+            form = document.getElementById('form');
+            form.addEventListener('submit', handleSubmit)
+
+
+        }
+
+        //funcion para validar el formulario
+        function validateForm() {
+
+            //Tomo los datos del formulario que faltan
+            let telefono = document.getElementById('tlf').value;
+            let email = document.getElementById('em').value;
+
+            // Compruebo formato del dni
+            let dniRegex = /^\d{8}[A-Za-z]$/;
+            if (!dniRegex.test(dni.value.trim())) {
+                alert("El DNI es inválido. Debe tener 8 dígitos seguidos de una letra.");
+                return false;
+            }
+
+            // Compruebo formato del teléfono
+
+            let telefonoRegex = /^\+?(\d{2})?[\s\-]?\d{3}[\s\-]?\d{3}[\s\-]?\d{3}$/;
+            if (!telefonoRegex.test(telefono.trim())) {
+                alert("El teléfono es inválido. Asegúrate de seguir el formato correcto.");
+                return false;
+            }
+
+            // Compruebo formato del email
+
+            let emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailRegex.test(email.trim())) {
+                alert("El email es inválido. Asegúrate de que el formato sea correcto.");
+                return false;
+            }
+
+            return true;
+        }
+
+        //se pasa por la función validadora antes de pedir cita
+
+        function handleSubmit(e) {
+
+            e.preventDefault();
+
+            if (validateForm() == true) {
+                insertAppointment();
+            }
+
+
+        }
+
+        //petición al servidor para insertar la fecha
+
+        function insertAppointment() {
+
+            let formData = {
+                nombre: document.getElementById('nom').value,
+                telefono: document.getElementById('tlf').value,
+                DNI: dni.value,
+                fecha: fecha.value,
+                email: document.getElementById('em').value,
+                tipo: document.getElementById('cons1').checked == true ?
+
+                    document.getElementById('cons1').value :
+
+                    document.getElementById('cons2').value
+
+            }
+
+            let options = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            }
+
+            fetch(linkApi, options)
+                .then((response) => response.json())
+                .then((data) => {
+
+                    if (data.message != null) {
+                        document.getElementById('msg').innerHTML = data.message;
+
+                    } else {
+                        document.getElementById('msg').innerHTML = data.error;
+                    }
+
+
+                }).catch((error) => console.log(error));
+        }
+
+        //funcion para validar la fecha
+
+        function validateDate(e) {
+
+            let selectedDate = new Date(e.target.value);
+            let currentDate = new Date();
+
+            currentDate.setHours(0, 0, 0, 0);
+            selectedDate.setHours(0, 0, 0, 0);
+
+            if (selectedDate < currentDate) {
+                alert('La fecha no puede ser anterior a la actual');
+                e.target.value = "";
+            }
+            return false;
+        }
+
+        //función para ver si es la primera cita buscando por el DNI
+        function searchAppoinment() {
+
+            fetch(linkApi + '?checkDNI=' + dni.value)
+                .then(response => response.json())
+                .then(data => {
+
+                    if (data == "none") {
+                        document.getElementById('cons2').disabled = true;
+                    }
+
+                })
+
+        }
+
+        window.onload = handler;
+
+    </script>
+</head>
+
+<body>
+
+    <main class="main">
+        <div class="main__box">
+
+            <!-- Zona para mensaje de error o de inserción de cita -->
+             
+            <h1 class="main__message" id="msg"></h1>
+            <form action="#" method="post" class="main__form" id="form">
+
+                <div class="main__form__box">
+                    <label for="nom">Nombre: </label>
+                    <input type="text" name="nombre" id="nom" required>
+                </div>
+
+                <div class="main__form__box">
+                    <label for="dni">DNI: </label>
+                    <input type="text" name="dni" id="dni" required>
+                </div>
+
+                <div class="main__form__box">
+                    <label for="tlf">Teléfono: </label>
+                    <input type="text" name="telefono" id="tlf" required>
+                </div>
+
+                <div class="main__form__box">
+                    <label for="em">Email: </label>
+                    <input type="text" name="email" id="em" required>
+                </div>
+
+                <div class="main__form__box">
+                    <label for="date">Fecha de la consulta: </label>
+                    <input type="date" name="fecha" id="date" required>
+                </div>
+
+
+                <div class="main__form__box main__form__box--tipo">
+                    <p>Tipo de consulta:</p>
+                    <label for="cons1">Primera Consulta</label>
+                    <input type="radio" name="consulta" id="cons1" value="PC" required>
+                    <label for="cons2">Revision</label>
+                    <input type="radio" name="consulta" id="cons2" value="R" required>
+                </div>
+
+                <div class="main__form__box">
+
+                    <input type="submit" value="Enviar" class="main__submit">
+
+                </div>
+            </form>
+        </div>
+    </main>
+
+</body>
+
+</html>
